@@ -67,6 +67,8 @@ const state = {
   onPointerDownLat: 0,
   onPointerDownX: 0,
   onPointerDownY: 0,
+  lastPointerX: 0,
+  lastPointerY: 0,
   movedDistance: 0,
   sensitivity: 0.12,
   damping: 0.08,
@@ -75,7 +77,6 @@ const state = {
   isCameraAnimating: false,
   isZoomed: false,
   savedView: null,
-  armedSceneHotspotId: null,
   enableCoordinateHelper: true,
   hotspotIconTexture: null,
 };
@@ -162,6 +163,10 @@ function bindEvents() {
   document.addEventListener("mousemove", onMouseMove);
   document.addEventListener("mouseup", onMouseUp);
   document.addEventListener("mouseleave", onMouseUp);
+  document.addEventListener("touchstart", onTouchStart, { passive: false });
+  document.addEventListener("touchmove", onTouchMove, { passive: false });
+  document.addEventListener("touchend", onTouchEnd, { passive: false });
+  document.addEventListener("touchcancel", onTouchEnd, { passive: false });
   window.addEventListener("click", onWindowClick);
   window.addEventListener("resize", onResize);
   document.addEventListener("fullscreenchange", onFullscreenChange);
@@ -388,37 +393,6 @@ function zoomToHotspot(target) {
   );
 }
 
-function getLookTargetFromPosition(position) {
-  const radius = Math.sqrt(position.x * position.x + position.y * position.y + position.z * position.z) || 1;
-  const lon = THREE.MathUtils.radToDeg(Math.atan2(position.z, position.x));
-  const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(position.y / radius, -1, 1)));
-
-  return { lon, lat };
-}
-
-function handleSceneHotspotClick(hotspot) {
-  if (!hotspot?.userData?.targetScene) {
-    return;
-  }
-
-  hotspot.userData.clickBoost = 1.3;
-
-  if (state.isZoomed && state.armedSceneHotspotId === hotspot.userData.id) {
-    transitionToScene(hotspot, hotspot.userData.targetScene);
-    return;
-  }
-
-  const lookTarget = getLookTargetFromPosition(hotspot.position);
-  state.armedSceneHotspotId = hotspot.userData.id;
-
-  zoomToHotspot({
-    lon: lookTarget.lon,
-    lat: lookTarget.lat,
-    fov: 45,
-    tooltip: `${hotspot.userData.title}: click again to enter`,
-  });
-}
-
 function resetZoomView() {
   if (!state.savedView || state.isTransitioning || state.isCameraAnimating) {
     return;
@@ -437,7 +411,6 @@ function resetZoomView() {
 function clearZoomState() {
   state.isZoomed = false;
   state.savedView = null;
-  state.armedSceneHotspotId = null;
   ui.resetZoomBtn.classList.add("hidden");
 }
 
@@ -582,6 +555,28 @@ function onMouseDown(event) {
   state.movedDistance = 0;
   state.onPointerDownX = event.clientX;
   state.onPointerDownY = event.clientY;
+  state.lastPointerX = event.clientX;
+  state.lastPointerY = event.clientY;
+  state.onPointerDownLon = state.lon;
+  state.onPointerDownLat = state.lat;
+  state.velocityLon = 0;
+  state.velocityLat = 0;
+  ui.viewerContainer.classList.add("is-dragging");
+}
+
+function onTouchStart(event) {
+  if (event.touches.length !== 1 || state.isTransitioning || state.isCameraAnimating) {
+    return;
+  }
+
+  const touch = event.touches[0];
+  hideTooltip();
+  state.isUserInteracting = true;
+  state.movedDistance = 0;
+  state.onPointerDownX = touch.clientX;
+  state.onPointerDownY = touch.clientY;
+  state.lastPointerX = touch.clientX;
+  state.lastPointerY = touch.clientY;
   state.onPointerDownLon = state.lon;
   state.onPointerDownLat = state.lat;
   state.velocityLon = 0;
@@ -608,7 +603,51 @@ function onMouseMove(event) {
   updateHoveredHotspot();
 }
 
+function onTouchMove(event) {
+  if (event.touches.length !== 1) {
+    return;
+  }
+
+  const touch = event.touches[0];
+  updatePointerRay(touch);
+
+  if (state.isUserInteracting) {
+    state.lon = (state.onPointerDownX - touch.clientX) * state.sensitivity + state.onPointerDownLon;
+    state.lat = (touch.clientY - state.onPointerDownY) * state.sensitivity + state.onPointerDownLat;
+
+    const deltaX = touch.clientX - state.lastPointerX;
+    const deltaY = touch.clientY - state.lastPointerY;
+    state.velocityLon = -deltaX * state.sensitivity * 0.1;
+    state.velocityLat = deltaY * state.sensitivity * 0.1;
+
+    state.lastPointerX = touch.clientX;
+    state.lastPointerY = touch.clientY;
+
+    state.movedDistance = Math.max(
+      state.movedDistance,
+      Math.abs(touch.clientX - state.onPointerDownX) + Math.abs(touch.clientY - state.onPointerDownY)
+    );
+
+    // Prevent page scroll while dragging panorama on touch devices.
+    event.preventDefault();
+    return;
+  }
+}
+
 function onMouseUp() {
+  if (!state.isUserInteracting) {
+    return;
+  }
+
+  state.isUserInteracting = false;
+  ui.viewerContainer.classList.remove("is-dragging");
+}
+
+function onTouchEnd(event) {
+  if (event.touches.length > 0) {
+    return;
+  }
+
   if (!state.isUserInteracting) {
     return;
   }
@@ -673,7 +712,7 @@ function onWindowClick(event) {
 
   if (obj.type === "Sprite") {
     if (obj.userData.targetScene) {
-      handleSceneHotspotClick(obj);
+      transitionToScene(obj, obj.userData.targetScene);
     } else if (obj.userData.onClick) {
       obj.userData.onClick();
     } else {
