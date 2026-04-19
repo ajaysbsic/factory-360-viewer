@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC Charger Panorama Viewer</title>
+  <meta name="description" content="Immersive 360 panorama viewer for DC charger training using Three.js." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="sceneTransition"></div>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Immersive Panorama Training</p>
+        <h1>DC Charger 360 Viewer</h1>
+        <p class="subtle">Smooth free-look navigation inspired by Street View and Krpano.</p>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="resetView" class="btn btn-primary" type="button">Reset View</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="viewer-card">
+        <div id="viewerContainer" class="viewer-stage" aria-label="Immersive DC charger panorama viewer">
+          <button id="backBtn" class="viewer-btn hidden" type="button" aria-label="Back to outside scene">
+            <img src="images/back.png" alt="Back" />
+          </button>
+
+          <button id="fullscreenBtn" class="viewer-btn" type="button" aria-label="Enter fullscreen">
+            <img id="fullscreenIcon" src="images/expand.png" alt="Fullscreen" />
+          </button>
+
+          <button id="resetZoomBtn" class="viewer-btn hidden" type="button" aria-label="Reset inspection zoom">
+            <img src="images/back.png" alt="Reset View" />
+          </button>
+
+          <div id="renderContainer" class="render-container"></div>
+
+          <div id="loadingOverlay" class="loading-overlay">
+            <div class="loader-card">
+              <div class="spinner"></div>
+              <h2>Loading 360 panorama</h2>
+              <p id="loadingText">Preparing immersive viewer…</p>
+            </div>
+          </div>
+
+          <div class="viewer-overlay">
+            <div class="viewer-hint">
+              <span>🖱️ Drag to look around</span>
+              <span>🎯 Click glowing hotspots</span>
+            </div>
+
+            <div id="tooltip" class="tooltip hidden">
+              <div class="tooltip-content">
+                <span id="tooltip-text">Select a hotspot inside the panorama to inspect it.</span>
+                <button id="close-tooltip" type="button" aria-label="Close tooltip">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Viewer Controls</h2>
+            <span id="statusBadge" class="badge">Loading</span>
+          </div>
+
+          <label class="control-group" for="sensitivityControl">
+            <span>Sensitivity</span>
+            <strong id="sensitivityValue">0.12</strong>
+          </label>
+          <input id="sensitivityControl" class="slider" type="range" min="0.05" max="0.30" step="0.01" value="0.12" />
+
+          <label class="control-group" for="dampingControl">
+            <span>Damping</span>
+            <strong id="dampingValue">0.08</strong>
+          </label>
+          <input id="dampingControl" class="slider" type="range" min="0.03" max="0.20" step="0.01" value="0.08" />
+
+          <p id="statusText" class="status-text">Loading panorama texture and initializing the camera.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Hotspots</h2>
+          <ul class="part-list">
+            <li><strong>Charging Gun</strong> — connection guidance</li>
+            <li><strong>Display</strong> — live system status</li>
+            <li><strong>Emergency Button</strong> — shutdown safety</li>
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h2>Setup Notes</h2>
+          <p class="status-text">Place your panorama image in the images folder as panorama.jpg. A 2:1 image size like 4000 × 2000 is recommended for a clean immersive result.</p>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script src="libs/three.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
