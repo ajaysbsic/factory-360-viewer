@@ -17,18 +17,6 @@ const hotspotData = {
       position: { x: -432.16, y: -138.16, z: 207.98 },
       targetScene: "factory",
     },
-    {
-      id: "inspect-charging-gun",
-      title: "Charging Gun",
-      text: "Charging gun inspection area",
-      position: { x: 180, y: 40, z: -290 },
-      action: () => zoomToHotspot({
-        lon: 35,
-        lat: 8,
-        fov: 35,
-        tooltip: "Charging gun inspection area",
-      }),
-    },
   ],
   inside: [],
   factory: [],
