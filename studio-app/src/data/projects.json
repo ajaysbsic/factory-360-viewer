@@ -1,0 +1,63 @@
+[
+  {
+    "id": 1001,
+    "name": "DC Charger Hall",
+    "rootScene": "hall.jpg",
+    "scenes": [
+      {
+        "id": "scene-root",
+        "image": "hall.jpg",
+        "hotspots": [
+          {
+            "label": "Enter Workstation",
+            "x": -298.19,
+            "y": -248.7,
+            "z": -313.82,
+            "targetSceneId": "scene-2"
+          },
+          {
+            "label": "Enter Factory",
+            "x": -432.16,
+            "y": -138.16,
+            "z": 207.98,
+            "targetSceneId": "scene-3"
+          }
+        ]
+      },
+      {
+        "id": "scene-2",
+        "image": "inside.jpg",
+        "hotspots": []
+      },
+      {
+        "id": "scene-3",
+        "image": "factory.jpg",
+        "hotspots": []
+      }
+    ]
+  },
+  {
+    "id": 1002,
+    "name": "Generator Room",
+    "rootScene": "generator.jpg",
+    "scenes": [
+      {
+        "id": "scene-root",
+        "image": "generator.jpg",
+        "hotspots": []
+      }
+    ]
+  },
+  {
+    "id": 1003,
+    "name": "Substation View",
+    "rootScene": "substation.jpg",
+    "scenes": [
+      {
+        "id": "scene-root",
+        "image": "substation.jpg",
+        "hotspots": []
+      }
+    ]
+  }
+]
