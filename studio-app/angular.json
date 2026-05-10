@@ -34,7 +34,8 @@
             "production": {
               "optimization": true,
               "extractLicenses": true,
-              "sourceMap": false
+              "sourceMap": false,
+              "baseHref": "/factory-360-viewer/"
             },
             "development": {
               "optimization": false,
