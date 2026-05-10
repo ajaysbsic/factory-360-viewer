@@ -4,13 +4,17 @@ export interface Hotspot {
   x: number;
   y: number;
   z: number;
-  targetSceneId: string;
+  targetSceneId?: string;
+  type?: 'scene' | 'info';
+  description?: string;
 }
 
 export interface Scene {
   id: string;
   image: string;
   hotspots: Hotspot[];
+  initialLon?: number;
+  initialLat?: number;
 }
 
 export interface Project {

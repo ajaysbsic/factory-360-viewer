@@ -7,16 +7,17 @@ body {
   margin: 0;
   min-height: 100%;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: #f2f5fa;
-  color: #182033;
+  background: #0a0e27;
+  color: #fff;
 }
 
 a {
-  color: #0f5bcf;
+  color: #4facfe;
 }
 
 h1,
 h2,
 h3 {
   margin-top: 0;
+  color: #fff;
 }

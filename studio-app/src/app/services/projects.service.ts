@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, of, tap } from 'rxjs';
-import { CapturedCoordinate, Project } from '../models/project.model';
+import { Observable, from, map, of, tap } from 'rxjs';
+import { CapturedCoordinate, Project, Scene } from '../models/project.model';
+import { ImageStorageService } from './image-storage.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectsService {
@@ -45,7 +46,10 @@ export class ProjectsService {
     ],
   };
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly imageStorageService: ImageStorageService
+  ) {}
 
   getProjects(): Observable<Project[]> {
     const stored = this.readProjectsFromStorage();
@@ -76,26 +80,35 @@ export class ProjectsService {
           id: 'scene-root',
           image: imagePath,
           hotspots: [],
+          initialLon: 0,
+          initialLat: 0,
         },
       ],
     };
 
-    projects.push(project);
-    this.writeProjectsToStorage(projects);
-    return of(project);
+    return from(this.migrateProjectImages(project)).pipe(
+      tap((migratedProject) => {
+        projects.push(migratedProject);
+        this.writeProjectsToStorage(projects);
+      }),
+      map((migratedProject) => migratedProject)
+    );
   }
 
   updateProject(updated: Project): Observable<Project> {
-    const projects = this.readProjectsFromStorage();
-    const index = projects.findIndex((project) => project.id === updated.id);
-    if (index === -1) {
-      projects.push(updated);
-    } else {
-      projects[index] = updated;
-    }
-
-    this.writeProjectsToStorage(projects);
-    return of(updated);
+    return from(this.migrateProjectImages(updated)).pipe(
+      tap((migratedProject) => {
+        const projects = this.readProjectsFromStorage();
+        const index = projects.findIndex((project) => project.id === migratedProject.id);
+        if (index === -1) {
+          projects.push(migratedProject);
+        } else {
+          projects[index] = migratedProject;
+        }
+        this.writeProjectsToStorage(projects);
+      }),
+      map((migratedProject) => migratedProject)
+    );
   }
 
   deleteProject(projectId: number): Observable<void> {
@@ -125,6 +138,45 @@ export class ProjectsService {
     localStorage.removeItem(this.coordinateKey);
   }
 
+  private async migrateProjectImages(project: Project): Promise<Project> {
+    const scenes = await Promise.all(
+      project.scenes.map(async (scene) => this.migrateSceneImage(scene))
+    );
+
+    return {
+      ...project,
+      scenes,
+    };
+  }
+
+  private async migrateSceneImage(scene: Scene): Promise<Scene> {
+    if (scene.image.startsWith('data:')) {
+      const key = `image-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const blob = this.dataUrlToBlob(scene.image);
+      await this.imageStorageService.saveImage(key, blob);
+      return {
+        ...scene,
+        image: `indexeddb:${key}`,
+      };
+    }
+
+    return scene;
+  }
+
+  private dataUrlToBlob(dataUrl: string): Blob {
+    const [header, base64] = dataUrl.split(',');
+    const contentTypeMatch = header.match(/data:(.*?);base64/);
+    const contentType = contentTypeMatch ? contentTypeMatch[1] : 'application/octet-stream';
+
+    const binaryString = atob(base64);
+    const array = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i += 1) {
+      array[i] = binaryString.charCodeAt(i);
+    }
+
+    return new Blob([array], { type: contentType });
+  }
+
   private readProjectsFromStorage(): Project[] {
     try {
       const raw = localStorage.getItem(this.projectsKey);
@@ -139,7 +191,10 @@ export class ProjectsService {
   }
 
   private ensureFirstProjectBaseline(projects: Project[]): Project[] {
-    const withoutFirst = projects.filter((project) => project.id !== this.baselineFirstProject.id);
-    return [this.baselineFirstProject, ...withoutFirst];
+    const hasBaseline = projects.some((project) => project.id === this.baselineFirstProject.id);
+    if (hasBaseline) {
+      return projects;
+    }
+    return [this.baselineFirstProject, ...projects];
   }
 }

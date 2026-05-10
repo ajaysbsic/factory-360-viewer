@@ -36,6 +36,7 @@ import { CapturedCoordinate, Project } from '../models/project.model';
           [sensitivity]="sensitivity"
           [damping]="damping"
           (coordinateCaptured)="onCoordinateCaptured($event)"
+          (sceneChanged)="onSceneChanged($event)"
         ></app-panorama-viewer>
 
         <section class="info-grid">
@@ -74,8 +75,8 @@ import { CapturedCoordinate, Project } from '../models/project.model';
 
           <article class="panel">
             <h2>Hotspots</h2>
-            <ul *ngIf="getRootHotspotSummaries(project).length > 0; else noHotspots">
-              <li *ngFor="let hotspot of getRootHotspotSummaries(project)" [class.active-hotspot]="activeHotspotIndex === hotspot.index">
+            <ul *ngIf="getCurrentSceneHotspotSummaries(project).length > 0; else noHotspots">
+              <li *ngFor="let hotspot of getCurrentSceneHotspotSummaries(project)" [class.active-hotspot]="activeHotspotIndex === hotspot.index">
                 <strong>{{ hotspot.label }}</strong> — {{ hotspot.action }}
 
                 <div class="coord-editor">
@@ -126,7 +127,7 @@ import { CapturedCoordinate, Project } from '../models/project.model';
               </li>
             </ul>
             <ng-template #noHotspots>
-              <p class="panel-note">No hotspots configured on the root scene yet.</p>
+              <p class="panel-note">No hotspots configured on this scene yet.</p>
             </ng-template>
             <p class="panel-note" *ngIf="hotspotMessage">{{ hotspotMessage }}</p>
           </article>
@@ -140,10 +141,23 @@ import { CapturedCoordinate, Project } from '../models/project.model';
         max-width: 1100px;
         margin: 0 auto;
         padding: 24px;
+        background: #0a0e27;
+        color: #fff;
+        min-height: 100vh;
+      }
+
+      a {
+        color: #4facfe;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      a:hover {
+        color: #00f2fe;
       }
 
       .muted {
-        color: #4d5870;
+        color: #7a8fb8;
       }
 
       .mode-toggle {
@@ -155,28 +169,44 @@ import { CapturedCoordinate, Project } from '../models/project.model';
       }
 
       .mode-toggle button {
-        border: 1px solid #d0d7e4;
-        background: #fff;
-        color: #22304f;
+        border: 1px solid rgba(79, 172, 254, 0.3);
+        background: rgba(79, 172, 254, 0.1);
+        color: #4facfe;
         border-radius: 10px;
         padding: 8px 12px;
         cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .mode-toggle button:hover {
+        background: rgba(79, 172, 254, 0.2);
+        border-color: rgba(79, 172, 254, 0.5);
       }
 
       .mode-toggle button.active {
-        border-color: #0f5bcf;
-        background: #e8f0ff;
+        border-color: #4facfe;
+        background: rgba(79, 172, 254, 0.25);
+        color: #00f2fe;
       }
 
       .edit-link {
         margin-left: auto;
         text-decoration: none;
         font-weight: 600;
+        color: #4facfe;
+      }
+
+      .edit-link:hover {
+        color: #00f2fe;
       }
 
       .hint {
         margin: 8px 0;
-        color: #37445f;
+        color: #dce8ff;
+        background: rgba(79, 172, 254, 0.1);
+        padding: 8px 12px;
+        border-radius: 8px;
+        border-left: 3px solid #4facfe;
       }
 
       .info-grid {
@@ -187,15 +217,22 @@ import { CapturedCoordinate, Project } from '../models/project.model';
       }
 
       .panel {
-        border: 1px solid #1f3561;
+        border: 1px solid rgba(79, 172, 254, 0.2);
         border-radius: 18px;
-        background: linear-gradient(180deg, #041331 0%, #021028 100%);
+        background: linear-gradient(135deg, #1a1f4d 0%, #151b40 100%);
         color: #dce8ff;
         padding: 18px;
+        transition: all 0.3s ease;
+      }
+
+      .panel:hover {
+        border-color: rgba(79, 172, 254, 0.5);
+        box-shadow: 0 8px 24px rgba(79, 172, 254, 0.1);
       }
 
       .panel h2 {
         margin: 0 0 12px;
+        color: #fff;
       }
 
       .panel-head {
@@ -208,18 +245,25 @@ import { CapturedCoordinate, Project } from '../models/project.model';
       .status {
         padding: 6px 10px;
         border-radius: 999px;
-        background: rgba(84, 176, 255, 0.25);
+        background: rgba(79, 172, 254, 0.25);
         font-size: 0.9rem;
+        color: #00f2fe;
       }
 
       .control-row {
         display: flex;
         justify-content: space-between;
         margin: 12px 0 6px;
+        color: #dce8ff;
+      }
+
+      .control-row strong {
+        color: #4facfe;
       }
 
       input[type='range'] {
         width: 100%;
+        accent-color: #4facfe;
       }
 
       .panel ul {
@@ -231,16 +275,18 @@ import { CapturedCoordinate, Project } from '../models/project.model';
         margin-bottom: 10px;
         border-bottom: 1px solid rgba(168, 187, 220, 0.2);
         padding-bottom: 12px;
+        color: #dce8ff;
       }
 
       .panel li.active-hotspot {
-        background: rgba(84, 176, 255, 0.12);
+        background: rgba(79, 172, 254, 0.15);
         border-radius: 10px;
         padding: 10px;
+        border: 1px solid rgba(79, 172, 254, 0.3);
       }
 
       .panel-note {
-        color: #a8bbdc;
+        color: #7a8fb8;
         margin: 14px 0 0;
       }
 
@@ -251,15 +297,27 @@ import { CapturedCoordinate, Project } from '../models/project.model';
         gap: 8px;
       }
 
+      .coord-editor label {
+        color: #dce8ff;
+        font-size: 0.9rem;
+      }
+
       .coord-editor input {
         margin-top: 4px;
         width: 100%;
         box-sizing: border-box;
-        border: 1px solid #2c4a7f;
+        border: 1px solid rgba(79, 172, 254, 0.3);
         border-radius: 8px;
-        background: #0b1f47;
-        color: #dce8ff;
+        background: rgba(79, 172, 254, 0.1);
+        color: #fff;
         padding: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .coord-editor input:focus {
+        border-color: #4facfe;
+        background: rgba(79, 172, 254, 0.2);
+        outline: none;
       }
 
       .row-actions {
@@ -269,28 +327,43 @@ import { CapturedCoordinate, Project } from '../models/project.model';
       }
 
       .action-btn {
-        border: 1px solid #3e7ae3;
+        border: 1px solid rgba(79, 172, 254, 0.3);
         border-radius: 8px;
-        background: #123b7e;
-        color: #e8f1ff;
+        background: rgba(79, 172, 254, 0.15);
+        color: #4facfe;
         padding: 6px 10px;
         cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+      }
+
+      .action-btn:hover {
+        background: rgba(79, 172, 254, 0.25);
+        border-color: rgba(79, 172, 254, 0.5);
+        color: #00f2fe;
       }
 
       .action-btn.ghost {
-        border-color: #5b88d2;
-        background: #0f2d5d;
+        border-color: rgba(79, 172, 254, 0.4);
+        background: rgba(79, 172, 254, 0.1);
       }
 
       .action-btn.danger {
-        border-color: #c63e57;
-        background: #5d1f30;
+        border-color: rgba(220, 62, 87, 0.3);
+        background: rgba(220, 62, 87, 0.15);
+        color: #ff6b7a;
+      }
+
+      .action-btn.danger:hover {
+        background: rgba(220, 62, 87, 0.25);
+        border-color: rgba(220, 62, 87, 0.5);
       }
 
       .inline-note {
         margin: 8px 0 0;
-        color: #9ed0ff;
+        color: #00f2fe;
         font-size: 0.9rem;
+        font-weight: 600;
       }
     `,
   ],
@@ -302,8 +375,9 @@ export class ViewerPageComponent {
   lastCaptured: CapturedCoordinate | null = this.projectsService.getCapturedCoordinate();
   hotspotMessage = '';
   activeHotspotIndex: number | null = null;
-  private readonly editableCoordinates: Record<number, CapturedCoordinate> = {};
+  private editableCoordinates: Record<number, CapturedCoordinate> = {};
   private readonly refreshProject$ = new Subject<void>();
+  currentSceneId = 'scene-root';
 
   readonly project$ = combineLatest([this.route.paramMap, this.refreshProject$.pipe(startWith(void 0))]).pipe(
     switchMap(([params]) => this.projectsService.getProjectById(params.get('id') ?? ''))
@@ -358,10 +432,53 @@ export class ViewerPageComponent {
     return 'Use hotspot links to move between connected scenes.';
   }
 
+  onSceneChanged(sceneId: string): void {
+    this.currentSceneId = sceneId;
+    this.activeHotspotIndex = null;
+    this.editableCoordinates = {};
+    this.hotspotMessage = '';
+  }
+
+  getCurrentSceneHotspotSummaries(project: {
+    scenes: Array<{
+      id: string;
+      hotspots: Array<{ label?: string; x: number; y: number; z: number; targetSceneId?: string; type?: string; description?: string }>;
+    }>;
+  }): Array<{ index: number; label: string; action: string; x: number; y: number; z: number }> {
+    const currentScene = project.scenes.find((scene) => scene.id === this.currentSceneId);
+    if (!currentScene) {
+      return [];
+    }
+
+    return currentScene.hotspots.map((hotspot, index) => {
+      const type = hotspot.type ?? 'scene';
+      if (type === 'info') {
+        return {
+          index,
+          label: hotspot.label ?? 'Info',
+          action: hotspot.description ? 'show info' : 'info pointer',
+          x: hotspot.x,
+          y: hotspot.y,
+          z: hotspot.z,
+        };
+      }
+
+      const targetScene = project.scenes.find((scene) => scene.id === hotspot.targetSceneId);
+      return {
+        index,
+        label: hotspot.label ?? 'Hotspot',
+        action: targetScene ? `open ${targetScene.id.replace(/-/g, ' ')} view` : 'open linked scene',
+        x: hotspot.x,
+        y: hotspot.y,
+        z: hotspot.z,
+      };
+    });
+  }
+
   getRootHotspotSummaries(project: {
     scenes: Array<{
       id: string;
-      hotspots: Array<{ label?: string; x: number; y: number; z: number; targetSceneId: string }>;
+      hotspots: Array<{ label?: string; x: number; y: number; z: number; targetSceneId?: string; type?: string; description?: string }>;
     }>;
   }): Array<{ index: number; label: string; action: string; x: number; y: number; z: number }> {
     const rootScene = project.scenes.find((scene) => scene.id === 'scene-root') ?? project.scenes[0];
@@ -370,6 +487,18 @@ export class ViewerPageComponent {
     }
 
     return rootScene.hotspots.map((hotspot, index) => {
+      const type = hotspot.type ?? 'scene';
+      if (type === 'info') {
+        return {
+          index,
+          label: hotspot.label ?? 'Info',
+          action: hotspot.description ? 'show info' : 'info pointer',
+          x: hotspot.x,
+          y: hotspot.y,
+          z: hotspot.z,
+        };
+      }
+
       const targetScene = project.scenes.find((scene) => scene.id === hotspot.targetSceneId);
       return {
         index,
@@ -398,14 +527,14 @@ export class ViewerPageComponent {
     }
 
     const updated = this.cloneProject(project);
-    const rootScene = updated.scenes.find((scene) => scene.id === 'scene-root') ?? updated.scenes[0];
-    if (!rootScene || !rootScene.hotspots[hotspotIndex]) {
+    const currentScene = updated.scenes.find((scene) => scene.id === this.currentSceneId);
+    if (!currentScene || !currentScene.hotspots[hotspotIndex]) {
       this.hotspotMessage = 'Hotspot not found.';
       return;
     }
 
-    rootScene.hotspots[hotspotIndex] = {
-      ...rootScene.hotspots[hotspotIndex],
+    currentScene.hotspots[hotspotIndex] = {
+      ...currentScene.hotspots[hotspotIndex],
       x: Number(nextX.toFixed(2)),
       y: Number(nextY.toFixed(2)),
       z: Number(nextZ.toFixed(2)),
@@ -424,13 +553,13 @@ export class ViewerPageComponent {
 
   deleteHotspot(project: Project, hotspotIndex: number): void {
     const updated = this.cloneProject(project);
-    const rootScene = updated.scenes.find((scene) => scene.id === 'scene-root') ?? updated.scenes[0];
-    if (!rootScene || !rootScene.hotspots[hotspotIndex]) {
+    const currentScene = updated.scenes.find((scene) => scene.id === this.currentSceneId);
+    if (!currentScene || !currentScene.hotspots[hotspotIndex]) {
       this.hotspotMessage = 'Hotspot not found.';
       return;
     }
 
-    const [removed] = rootScene.hotspots.splice(hotspotIndex, 1);
+    const [removed] = currentScene.hotspots.splice(hotspotIndex, 1);
     const removedTargetSceneId = removed?.targetSceneId;
 
     if (removedTargetSceneId) {
